@@ -7,6 +7,8 @@
 #include <thread>
 
 std::string rootDir = "";
+std::vector<int> aliaseSize = { 2332449,2379343 };
+std::vector<std::string> aliases = {"cake.mp3","energetic.mp3"};
 
 char* lap = nullptr;
 std::string localappdata;
@@ -164,16 +166,6 @@ int main(int argc, char* argv[]) {
             return 2;
         }
     }
-    if (std::filesystem::exists(rootDir + "\\cache") == false) {
-        try {
-            std::filesystem::create_directory(rootDir + "\\cache");
-        }
-        catch (std::filesystem::filesystem_error) {
-            std::cout << "Failed to create RAD folder, unable to continue.\n";
-            std::cin.get();
-            return 4; // throw logic out the window, it's ordered by addition time
-        }
-    }
     if (std::filesystem::exists(rootDir + "\\rad.ico") == false) {
         FILE* icon;
         int response = 0;
@@ -230,24 +222,48 @@ int main(int argc, char* argv[]) {
         char throwaway = _getch();
     }
     system("cls");
-    //std::cout << "\033[45;97mThis is going on the floor or something idk\n \033[0m";
-    //HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE); // Get the console handle.
-    //PCONSOLE_SCREEN_BUFFER_INFO lpScreenInfo = new CONSOLE_SCREEN_BUFFER_INFO(); // Create a pointer to the Screen Info pointing to a temporal screen info.
-    //GetConsoleScreenBufferInfo(hConsole, lpScreenInfo); // Saves the console screen info into the lpScreenInfo pointer.
-    //SMALL_RECT coord = lpScreenInfo->srWindow;
-    //int x = coord.Right + 1;
+    /*std::cout << "\033[45;97mThis is going on the floor or something idk\n \033[0m";
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE); // Get the console handle.
+    PCONSOLE_SCREEN_BUFFER_INFO lpScreenInfo = new CONSOLE_SCREEN_BUFFER_INFO(); // Create a pointer to the Screen Info pointing to a temporal screen info.
+    GetConsoleScreenBufferInfo(hConsole, lpScreenInfo); // Saves the console screen info into the lpScreenInfo pointer.
+    SMALL_RECT coord = lpScreenInfo->srWindow;
+    int x = coord.Right + 1;*/
     thingy:
     std::cout << "just so i don't end up taking until next year to work on this, here's this extremely alpha version (tray icon doesn't work)\npress whatever (except q) to copy sounds\n";
     char throwaway = _getch();
     if (throwaway == 'q') {
         return 0;
     }
+    std::filesystem::remove_all(localappdata + "\\Roblox Audio Downloader\\sounds");
     std::filesystem::copy(UWPRobloxVersionFolder+"\\LocalState\\sounds",localappdata+"\\Roblox Audio Downloader\\sounds");
     std::cout << "thingy hopefully worked\n";
     int audiocount = 1;
     for (const auto& e : std::filesystem::directory_iterator(localappdata + "\\Roblox Audio Downloader\\sounds")) {
-        std::filesystem::rename(e.path().string(), localappdata + "\\Roblox Audio Downloader\\sounds\\audio"+std::to_string(audiocount)+".mp3");
+        std::string audioPath = localappdata + "\\Roblox Audio Downloader\\sounds\\audio" + std::to_string(audiocount) + ".mp3";
+        std::filesystem::rename(e.path().string(), audioPath);
+        // i was originally gonna use hashes, i tried them and it got the test audio confused with other stuff, i switched to file size and it works flawlessly now
+        std::cout << std::filesystem::file_size(audioPath) << ", " << "audio"+std::to_string(audiocount) << std::endl;
+        int aliasIndex = 0; 
+        for (int& v : aliaseSize) {
+            std::cout << v << std::endl;
+            std::cout << localappdata + "\\Roblox Audio Downloader\\sounds\\" + aliases[aliasIndex] << "\n";
+            if (std::filesystem::file_size(audioPath) == v) {
+                std::filesystem::rename(audioPath, localappdata + "\\Roblox Audio Downloader\\sounds\\"+aliases[aliasIndex]);
+                break;
+            }
+            aliasIndex++;
+        }
+        aliasIndex = 0;
+        std::cout << std::endl;
+        //if (std::filesystem::file_size(localappdata + "\\Roblox Audio Downloader\\sounds\\audio" + std::to_string(audiocount) + ".mp3") == 2379343) {
+        //    std::filesystem::rename(localappdata + "\\Roblox Audio Downloader\\sounds\\audio" + std::to_string(audiocount) + ".mp3", localappdata + "\\Roblox Audio Downloader\\sounds\\idk.mp3");
+        //} 
         audiocount++;
     }
     system(std::string("explorer \"" + localappdata + "\\Roblox Audio Downloader\\sounds" + "\"").c_str());
+    Sleep(500);
+    throwaway = _getch(); // i don't think i want to question how that fixes it
+    throwaway = ' ';
+    //clear();
+    goto thingy;
 }
