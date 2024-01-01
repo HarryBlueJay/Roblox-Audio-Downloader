@@ -7,7 +7,7 @@
 #include <thread>
 
 std::string rootDir = "";
-std::vector<int> aliaseSize = { 2332449,2379343 };
+std::vector<int> aliasesize = { 2332449,2379343 };
 std::vector<std::string> aliases = {"cake.mp3","energetic.mp3"};
 
 char* lap = nullptr;
@@ -149,6 +149,7 @@ int main(int argc, char* argv[]) {
     SetConsoleTitleA("Roblox Audio Downloader");
     bool error = false;
     std::cout << "Setting up..." << std::endl;
+    std::cin.get();
     if (!(_dupenv_s(&lap, &sz, "localappdata") == 0 && lap != nullptr)) {
         std::cout << "Failed to locate localappdata, unable to continue.\n";
         std::cin.get();
@@ -244,9 +245,7 @@ int main(int argc, char* argv[]) {
         // i was originally gonna use hashes, i tried them and it got the test audio confused with other stuff, i switched to file size and it works flawlessly now
         std::cout << std::filesystem::file_size(audioPath) << ", " << "audio"+std::to_string(audiocount) << std::endl;
         int aliasIndex = 0; 
-        for (int& v : aliaseSize) {
-            std::cout << v << std::endl;
-            std::cout << localappdata + "\\Roblox Audio Downloader\\sounds\\" + aliases[aliasIndex] << "\n";
+        for (int& v : aliasesize) {
             if (std::filesystem::file_size(audioPath) == v) {
                 std::filesystem::rename(audioPath, localappdata + "\\Roblox Audio Downloader\\sounds\\"+aliases[aliasIndex]);
                 break;
