@@ -21,10 +21,11 @@ HWND consoleWindow = GetConsoleWindow();
 LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam);
 LPCWSTR lpszClass = L"__hidden__";
 
-bool start = false;
+bool loaded = false;
+bool shown = true;
 
 using std::string;
-
+// if "userPresenceType": 2
 int traySystem() {
     HINSTANCE hInstance = GetModuleHandle(nullptr);
 
@@ -75,19 +76,38 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam) {
             POINT pt;
             GetCursorPos(&pt);
             HMENU hmenu = CreatePopupMenu();
-            if (!start) {
+            if (loaded) {
                 InsertMenuW(hmenu, -1, MF_BYPOSITION | MF_STRING | MF_CHECKED, 1, L"Copy Audio");
+                InsertMenuW(hmenu, -1, MF_BYPOSITION | MF_STRING | MF_CHECKED, 2, L"Remove External Audio");
             }
             else {
                 InsertMenuW(hmenu, -1, MF_BYPOSITION | MF_STRING | MF_GRAYED | MF_DISABLED, 1, L"Copy Audio");
+                InsertMenuW(hmenu, -1, MF_BYPOSITION | MF_STRING | MF_GRAYED | MF_DISABLED, 2, L"Remove External Audio");
             }
-            InsertMenuW(hmenu, -1, MF_BYPOSITION | MF_STRING, 2, L"Exit");
+            if (shown) {
+                InsertMenuW(hmenu, -1, MF_BYPOSITION | MF_STRING | MF_CHECKED, 3, L"Hide Window");
+            }
+            else {
+                InsertMenuW(hmenu, -1, MF_BYPOSITION | MF_STRING | MF_CHECKED, 3, L"Show Window");
+            }
+            InsertMenuW(hmenu, -1, MF_BYPOSITION | MF_STRING, 4, L"Exit");
             SetForegroundWindow(hWnd);
             int cmd = TrackPopupMenu(hmenu, TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_BOTTOMALIGN | TPM_RETURNCMD, pt.x, pt.y, 0, hWnd, NULL);
             switch (cmd) {
             case 1:
                 break;
             case 2:
+                break;
+            case 3:
+                if (shown) {
+                    ShowWindow(consoleWindow, SW_HIDE);
+                }
+                else {
+                    ShowWindow(consoleWindow, SW_SHOW);
+                }
+                shown = !shown;
+                break;
+            case 4:
                 ExitProcess(0);
                 break;
             }
@@ -149,7 +169,6 @@ int main(int argc, char* argv[]) {
     SetConsoleTitleA("Roblox Audio Downloader");
     bool error = false;
     std::cout << "Setting up..." << std::endl;
-    std::cin.get();
     if (!(_dupenv_s(&lap, &sz, "localappdata") == 0 && lap != nullptr)) {
         std::cout << "Failed to locate localappdata, unable to continue.\n";
         std::cin.get();
@@ -217,11 +236,14 @@ int main(int argc, char* argv[]) {
         return 3;
     }
     exitNest:
+    //Initialize the tray icon system
+    std::thread t1(traySystem);
     bool debugForceError = false;
     if (error || debugForceError) {
         std::cout << "Press any key to continue...\n";
         char throwaway = _getch();
     }
+    loaded = true;
     system("cls");
     /*std::cout << "\033[45;97mThis is going on the floor or something idk\n \033[0m";
     HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE); // Get the console handle.
@@ -237,7 +259,6 @@ int main(int argc, char* argv[]) {
     }
     std::filesystem::remove_all(localappdata + "\\Roblox Audio Downloader\\sounds");
     std::filesystem::copy(UWPRobloxVersionFolder+"\\LocalState\\sounds",localappdata+"\\Roblox Audio Downloader\\sounds");
-    std::cout << "thingy hopefully worked\n";
     int audiocount = 1;
     for (const auto& e : std::filesystem::directory_iterator(localappdata + "\\Roblox Audio Downloader\\sounds")) {
         std::string audioPath = localappdata + "\\Roblox Audio Downloader\\sounds\\audio" + std::to_string(audiocount) + ".mp3";
@@ -253,13 +274,9 @@ int main(int argc, char* argv[]) {
             aliasIndex++;
         }
         aliasIndex = 0;
-        std::cout << std::endl;
-        //if (std::filesystem::file_size(localappdata + "\\Roblox Audio Downloader\\sounds\\audio" + std::to_string(audiocount) + ".mp3") == 2379343) {
-        //    std::filesystem::rename(localappdata + "\\Roblox Audio Downloader\\sounds\\audio" + std::to_string(audiocount) + ".mp3", localappdata + "\\Roblox Audio Downloader\\sounds\\idk.mp3");
-        //} 
         audiocount++;
     }
-    system(std::string("explorer \"" + localappdata + "\\Roblox Audio Downloader\\sounds" + "\"").c_str());
+    system(std::string("explorer %localappdata%\\Roblox Audio Downloader\\sounds").c_str());
     Sleep(500);
     throwaway = _getch(); // i don't think i want to question how that fixes it
     throwaway = ' ';
