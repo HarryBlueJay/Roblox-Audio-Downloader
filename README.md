@@ -19,7 +19,7 @@ Just download and run a more recent version of the program anywhere*, and it wil
 # Features
 Every feature planned **so far for v1.0.0**:
 - [x] Core functionality (audio copying + renaming, core keybinds)
-- [ ] Full tray icon functionality
+- [x] Full tray icon functionality
 - [x] Alias file renaming
 - [ ] Alias creation + saving
 - [ ] Better UI
