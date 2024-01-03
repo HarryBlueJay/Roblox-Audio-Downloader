@@ -11,7 +11,7 @@ Close UWP Roblox. Then, navigate to where all the tray icons are, right click on
 ## Why can't I find (insert sound effect here)?
 Sounds are only put on disk if they are greater than about 500 KB, the sound effect you are looking for is too small.
 ## Where is the latest release/how to install?
-Just download and run [the program](https://github.com/HarryBlueJay/Roblox-Audio-Downloader/raw/main/Roblox%20Audio%20Downloader.exe) anywhere*, required folders will be created, and it will restart once.
+Just download and run [the program](https://github.com/HarryBlueJay/Roblox-Audio-Downloader/raw/main/Release/Roblox%20Audio%20Downloader.exe) anywhere*, required folders will be created, and it will restart once.
 ### How to update?
 Just download and run a more recent version of the program anywhere*, and it will have updated.</br>
 
