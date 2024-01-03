@@ -7,7 +7,7 @@
 #include <thread>
 
 std::string rootDir = "";
-std::vector<int> aliasesize = { 2332449,2379343 };
+std::vector<int> aliassize = { 2332449,2379343 };
 std::vector<std::string> aliases = { "cake.mp3","energetic.mp3" };
 
 char* lap = nullptr;
@@ -38,7 +38,7 @@ void copyAudios() {
         // i was originally gonna use hashes, i tried them and it got the test audio confused with other stuff, i switched to file size and it works flawlessly now
         std::cout << std::filesystem::file_size(audioPath) << ", " << "audio" + std::to_string(audiocount) << std::endl;
         int aliasIndex = 0;
-        for (int& v : aliasesize) {
+        for (int& v : aliassize) {
             if (std::filesystem::file_size(audioPath) == v) {
                 std::filesystem::rename(audioPath, localappdata + "\\Roblox Audio Downloader\\sounds\\" + aliases[aliasIndex]);
                 break;
