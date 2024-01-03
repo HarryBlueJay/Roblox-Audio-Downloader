@@ -237,7 +237,7 @@ int main(int argc, char* argv[]) {
     //SMALL_RECT coord = lpScreenInfo->srWindow;
     //int x = coord.Right + 1;
     thingy:
-    std::cout << "just so i don't end up taking until next year to work on this, here's this extremely alpha version (tray icon doesn't work)\npress whatever (except q) to copy sounds\n";
+    std::cout << "the ui sucks, i'm aware, tray icon works, but most of this is still very in progress\npress whatever (except q) to copy sounds\n";
     char throwaway = _getch();
     if (throwaway == 'q') {
         return 0;
