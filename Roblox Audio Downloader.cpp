@@ -8,7 +8,7 @@
 
 std::string rootDir = "";
 std::vector<int> aliasesize = { 2332449,2379343 };
-std::vector<std::string> aliases = {"cake.mp3","energetic.mp3"};
+std::vector<std::string> aliases = { "cake.mp3","energetic.mp3" };
 
 char* lap = nullptr;
 std::string localappdata;
@@ -25,7 +25,32 @@ bool loaded = false;
 bool shown = true;
 
 using std::string;
+string UWPRobloxVersionFolder = "";
 // if "userPresenceType": 2
+void copyAudios() {
+    loaded = false;
+    std::filesystem::remove_all(localappdata + "\\Roblox Audio Downloader\\sounds");
+    std::filesystem::copy(UWPRobloxVersionFolder + "\\LocalState\\sounds", localappdata + "\\Roblox Audio Downloader\\sounds");
+    int audiocount = 1;
+    for (const auto& e : std::filesystem::directory_iterator(localappdata + "\\Roblox Audio Downloader\\sounds")) {
+        std::string audioPath = localappdata + "\\Roblox Audio Downloader\\sounds\\audio" + std::to_string(audiocount) + ".mp3";
+        std::filesystem::rename(e.path().string(), audioPath);
+        // i was originally gonna use hashes, i tried them and it got the test audio confused with other stuff, i switched to file size and it works flawlessly now
+        std::cout << std::filesystem::file_size(audioPath) << ", " << "audio" + std::to_string(audiocount) << std::endl;
+        int aliasIndex = 0;
+        for (int& v : aliasesize) {
+            if (std::filesystem::file_size(audioPath) == v) {
+                std::filesystem::rename(audioPath, localappdata + "\\Roblox Audio Downloader\\sounds\\" + aliases[aliasIndex]);
+                break;
+            }
+            aliasIndex++;
+        }
+        aliasIndex = 0;
+        audiocount++;
+    }
+    system(std::string("explorer %localappdata%\\Roblox Audio Downloader\\sounds").c_str()); // that works
+    loaded = true;
+}
 int traySystem() {
     HINSTANCE hInstance = GetModuleHandle(nullptr);
 
@@ -67,36 +92,47 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam) {
         nid.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP | NIF_INFO;
         nid.uCallbackMessage = WM_APP + 1;
         nid.hIcon = (HICON)LoadImageA(NULL, (rootDir + "\\rad.ico").c_str(), IMAGE_ICON, 0, 0, LR_LOADFROMFILE | LR_SHARED);
-        memcpy_s(nid.szTip, sizeof(nid.szTip), L"RAD <3\nClick to toggle console", sizeof(wchar_t[31]));
+        memcpy_s(nid.szTip, sizeof(nid.szTip), L"RAD <3\nDouble click to toggle console", sizeof(wchar_t[38]));
         Shell_NotifyIcon(NIM_ADD, &nid);
         return 0;
     case WM_APP + 1:
         switch (lParam) {
+        case WM_LBUTTONDBLCLK:
+            if (shown) {
+                ShowWindow(consoleWindow, SW_HIDE);
+            }
+            else {
+                ShowWindow(consoleWindow, SW_SHOW);
+            }
+            shown = !shown;
+            break;
         case WM_RBUTTONDOWN: // yoink https://stackoverflow.com/questions/68474486/creating-system-tray-right-click-menu-c/68488511#68488511
             POINT pt;
             GetCursorPos(&pt);
             HMENU hmenu = CreatePopupMenu();
             if (loaded) {
-                InsertMenuW(hmenu, -1, MF_BYPOSITION | MF_STRING | MF_CHECKED, 1, L"Copy Audio");
-                InsertMenuW(hmenu, -1, MF_BYPOSITION | MF_STRING | MF_CHECKED, 2, L"Remove External Audio");
+                InsertMenuW(hmenu, -1, MF_BYPOSITION | MF_STRING, 1, L"Copy Audio");
+                InsertMenuW(hmenu, -1, MF_BYPOSITION | MF_STRING, 2, L"Remove External Audio");
             }
             else {
                 InsertMenuW(hmenu, -1, MF_BYPOSITION | MF_STRING | MF_GRAYED | MF_DISABLED, 1, L"Copy Audio");
                 InsertMenuW(hmenu, -1, MF_BYPOSITION | MF_STRING | MF_GRAYED | MF_DISABLED, 2, L"Remove External Audio");
             }
             if (shown) {
-                InsertMenuW(hmenu, -1, MF_BYPOSITION | MF_STRING | MF_CHECKED, 3, L"Hide Window");
+                InsertMenuW(hmenu, -1, MF_BYPOSITION | MF_STRING, 3, L"Hide Window");
             }
             else {
-                InsertMenuW(hmenu, -1, MF_BYPOSITION | MF_STRING | MF_CHECKED, 3, L"Show Window");
+                InsertMenuW(hmenu, -1, MF_BYPOSITION | MF_STRING, 3, L"Show Window");
             }
             InsertMenuW(hmenu, -1, MF_BYPOSITION | MF_STRING, 4, L"Exit");
             SetForegroundWindow(hWnd);
             int cmd = TrackPopupMenu(hmenu, TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_BOTTOMALIGN | TPM_RETURNCMD, pt.x, pt.y, 0, hWnd, NULL);
             switch (cmd) {
             case 1:
+                copyAudios();
                 break;
             case 2:
+                std::filesystem::remove_all(UWPRobloxVersionFolder + "\\LocalState\\sounds");
                 break;
             case 3:
                 if (shown) {
@@ -207,7 +243,7 @@ int main(int argc, char* argv[]) {
     }
     skipDownload:
     if (std::string(argv[0]).find(rootDir) == std::string::npos && std::string(argv[0]).find("coding time\\C++\\Roblox Audio Downloader") == std::string::npos) {
-        std::filesystem::copy_file(std::string(argv[0]),rootDir+"\\Roblox Audio Downloader.exe", std::filesystem::copy_options::overwrite_existing);
+        std::filesystem::copy_file(std::string(argv[0]), rootDir + "\\Roblox Audio Downloader.exe", std::filesystem::copy_options::overwrite_existing);
         //CreateProcess code from https://stackoverflow.com/a/15440094
 
         STARTUPINFOA si;
@@ -219,9 +255,9 @@ int main(int argc, char* argv[]) {
         CreateProcessA((rootDir + "\\Roblox Audio Downloader.exe").c_str(), NULL, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi);
         CloseHandle(pi.hProcess);
         CloseHandle(pi.hThread);
-        return 4;
+        return 3;
     }
-    string UWPRobloxVersionFolder = "";
+
     for (const auto& e : std::filesystem::directory_iterator(localappdata + string("\\Packages"))) {
         if (e.is_directory()) {
             if (e.path().string().find("ROBLOXCORPORATION.ROBLOX") != std::string::npos) {
@@ -235,7 +271,7 @@ int main(int argc, char* argv[]) {
         std::cin.get();
         return 3;
     }
-    exitNest:
+exitNest:
     //Initialize the tray icon system
     std::thread t1(traySystem);
     bool debugForceError = false;
@@ -252,31 +288,12 @@ int main(int argc, char* argv[]) {
     SMALL_RECT coord = lpScreenInfo->srWindow;
     int x = coord.Right + 1;*/
     thingy:
-    std::cout << "the ui sucks, i'm aware, tray icon works, but most of this is still very in progress\npress whatever (except q) to copy sounds\n";
+    std::cout << "the ui sucks, i'm aware, tray icon now works\npress whatever (except q) to copy sounds\n";
     char throwaway = _getch();
     if (throwaway == 'q') {
         return 0;
     }
-    std::filesystem::remove_all(localappdata + "\\Roblox Audio Downloader\\sounds");
-    std::filesystem::copy(UWPRobloxVersionFolder+"\\LocalState\\sounds",localappdata+"\\Roblox Audio Downloader\\sounds");
-    int audiocount = 1;
-    for (const auto& e : std::filesystem::directory_iterator(localappdata + "\\Roblox Audio Downloader\\sounds")) {
-        std::string audioPath = localappdata + "\\Roblox Audio Downloader\\sounds\\audio" + std::to_string(audiocount) + ".mp3";
-        std::filesystem::rename(e.path().string(), audioPath);
-        // i was originally gonna use hashes, i tried them and it got the test audio confused with other stuff, i switched to file size and it works flawlessly now
-        std::cout << std::filesystem::file_size(audioPath) << ", " << "audio"+std::to_string(audiocount) << std::endl;
-        int aliasIndex = 0; 
-        for (int& v : aliasesize) {
-            if (std::filesystem::file_size(audioPath) == v) {
-                std::filesystem::rename(audioPath, localappdata + "\\Roblox Audio Downloader\\sounds\\"+aliases[aliasIndex]);
-                break;
-            }
-            aliasIndex++;
-        }
-        aliasIndex = 0;
-        audiocount++;
-    }
-    system(std::string("explorer %localappdata%\\Roblox Audio Downloader\\sounds").c_str());
+    copyAudios();
     Sleep(500);
     throwaway = _getch(); // i don't think i want to question how that fixes it
     throwaway = ' ';
