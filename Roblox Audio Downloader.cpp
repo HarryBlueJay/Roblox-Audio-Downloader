@@ -5,10 +5,13 @@
 #include <curl\easy.h>
 #include <filesystem>
 #include <thread>
+#include <psapi.h>
 
 std::string rootDir = "";
 std::vector<int> aliassize = { 2332449,2379343 };
 std::vector<std::string> aliases = { "cake.mp3","energetic.mp3" };
+// the error code of "shut up it's fine"
+std::error_code ec = std::error_code::error_code();
 
 char* lap = nullptr;
 std::string localappdata;
@@ -25,18 +28,62 @@ bool loaded = false;
 bool shown = true;
 
 using std::string;
-string UWPRobloxVersionFolder = "";
+bool useNormalRobloxFolder = true;
+string UWPRobloxFolder = "";
+string robloxTempFolder = ""; 
+bool robloxExists = false;
 // if "userPresenceType": 2
+
+void setRunningVersion() {
+    // just quick checks if only one version exists
+    if (robloxExists && UWPRobloxFolder == "") { useNormalRobloxFolder = true; return; }
+    if (!robloxExists && UWPRobloxFolder != "") { useNormalRobloxFolder = false; return; }
+    bool UWPRunning = false;
+    bool robloxRunning = false;
+    // thank you microsoft my brain was starting to implode reading the documentation
+    //unsigned int i;
+    DWORD aProcesses[1024], cbNeeded, cProcesses;
+    if (!EnumProcesses(aProcesses, sizeof(aProcesses), &cbNeeded)) {
+        std::cout << "Failed to get running roblox version, preferring the web client.\n";
+        return;
+    }
+    // Calculate how many process identifiers were returned.
+    cProcesses = cbNeeded / sizeof(DWORD);
+    for (unsigned int i = 0; i < cProcesses; i++) {
+        if (aProcesses[i] != 0) {
+            HANDLE process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, aProcesses[i]);
+            char filename[MAX_PATH] = {};
+            GetModuleFileNameExA(process, NULL, filename, MAX_PATH);
+            if (string(filename).find("Windows10Univeral.exe") != std::string::npos) {
+                UWPRunning = true;
+            }
+            if (string(filename).find("RobloxPlayerBeta.exe") != std::string::npos) {
+                robloxRunning = true;
+            }
+        }
+    }
+    if (UWPRunning) {
+        useNormalRobloxFolder = false;
+    }
+    if (robloxRunning) {
+        useNormalRobloxFolder = true;
+    }
+    if (UWPRunning && robloxRunning) {
+        std::cout << "Multiple different versions of the roblox client are running. Sounds will be copied from the web client.\n";
+    }
+}
+
 void copyAudios() {
     loaded = false;
+    setRunningVersion();
     std::filesystem::remove_all(localappdata + "\\Roblox Audio Downloader\\sounds");
-    std::filesystem::copy(UWPRobloxVersionFolder + "\\LocalState\\sounds", localappdata + "\\Roblox Audio Downloader\\sounds");
+    std::filesystem::copy((useNormalRobloxFolder ? robloxTempFolder : UWPRobloxFolder + "\\LocalState") + "\\sounds", localappdata + "\\Roblox Audio Downloader\\sounds");
     int audiocount = 1;
     for (const auto& e : std::filesystem::directory_iterator(localappdata + "\\Roblox Audio Downloader\\sounds")) {
         std::string audioPath = localappdata + "\\Roblox Audio Downloader\\sounds\\audio" + std::to_string(audiocount) + ".mp3";
         std::filesystem::rename(e.path().string(), audioPath);
         // i was originally gonna use hashes, i tried them and it got the test audio confused with other stuff, i switched to file size and it works flawlessly now
-        std::cout << std::filesystem::file_size(audioPath) << ", " << "audio" + std::to_string(audiocount) << std::endl;
+        //std::cout << std::filesystem::file_size(audioPath) << ", " << "audio" + std::to_string(audiocount) << std::endl;
         int aliasIndex = 0;
         for (int& v : aliassize) {
             if (std::filesystem::file_size(audioPath) == v) {
@@ -51,6 +98,7 @@ void copyAudios() {
     system(std::string("explorer %localappdata%\\Roblox Audio Downloader\\sounds").c_str()); // that works
     loaded = true;
 }
+
 int traySystem() {
     HINSTANCE hInstance = GetModuleHandle(nullptr);
 
@@ -132,7 +180,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam) {
                 copyAudios();
                 break;
             case 2:
-                std::filesystem::remove_all(UWPRobloxVersionFolder + "\\LocalState\\sounds");
+                std::filesystem::remove_all((useNormalRobloxFolder ? robloxTempFolder : UWPRobloxFolder + "\\LocalState") + "\\sounds",ec);
                 break;
             case 3:
                 if (shown) {
@@ -200,7 +248,6 @@ void clear() {
     );
     SetConsoleCursorPosition(console, topLeft);
 }
-
 int main(int argc, char* argv[]) {
     SetConsoleTitleA("Roblox Audio Downloader");
     bool error = false;
@@ -261,38 +308,45 @@ int main(int argc, char* argv[]) {
     for (const auto& e : std::filesystem::directory_iterator(localappdata + string("\\Packages"))) {
         if (e.is_directory()) {
             if (e.path().string().find("ROBLOXCORPORATION.ROBLOX") != std::string::npos) {
-                UWPRobloxVersionFolder = e.path().string();
-                goto exitNest;
+                UWPRobloxFolder = e.path().string();
+                break;
             }
         }
     }
-    if (UWPRobloxVersionFolder == "") {
-        std::cout << "Failed to locate UWP Roblox, unable to continue.\n";
-        std::cin.get();
-        return 3;
+    HKEY hKey;
+    //char thingy[260]{};
+
+    //this only has to check if this exists, if it exists, roblox must be installed, otherwise roblox would be broken
+    if (RegOpenKeyExA(HKEY_CURRENT_USER, "SOFTWARE\\ROBLOX Corporation\\Environments\\roblox-player", 0, KEY_QUERY_VALUE, &hKey) == ERROR_SUCCESS) {
+        robloxExists = true;
+        /* unsigned long size = 260;
+         RegGetValueA(hKey, "", "InstallLocation", RRF_RT_REG_SZ, NULL, &thingy, &size);
+         RegCloseKey(hKey);*/
     }
-exitNest:
+    if (!robloxExists && UWPRobloxFolder == "") {
+        std::cout << "You might wanna install Roblox first... (If you have, open an issue)\n";
+        std::cin.get();
+        return 4;
+    }
+    if (robloxExists) {
+        robloxTempFolder = localappdata + "\\temp\\roblox";
+    }
     //Initialize the tray icon system
     std::thread t1(traySystem);
-    bool debugForceError = false;
+    bool debugForceError = true;
     if (error || debugForceError) {
         std::cout << "Press any key to continue...\n";
         char throwaway = _getch();
     }
     loaded = true;
     system("cls");
-    /*std::cout << "\033[45;97mThis is going on the floor or something idk\n \033[0m";
-    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE); // Get the console handle.
-    PCONSOLE_SCREEN_BUFFER_INFO lpScreenInfo = new CONSOLE_SCREEN_BUFFER_INFO(); // Create a pointer to the Screen Info pointing to a temporal screen info.
-    GetConsoleScreenBufferInfo(hConsole, lpScreenInfo); // Saves the console screen info into the lpScreenInfo pointer.
-    SMALL_RECT coord = lpScreenInfo->srWindow;
-    int x = coord.Right + 1;*/
-    thingy:
     std::cout << "the ui sucks, i'm aware, tray icon now works\npress whatever (except q) to copy sounds\n";
+    thingy:
     char throwaway = _getch();
     if (throwaway == 'q') {
-        return 0;
+        ExitProcess(0);
     }
+    setRunningVersion();
     copyAudios();
     Sleep(500);
     throwaway = _getch(); // i don't think i want to question how that fixes it
