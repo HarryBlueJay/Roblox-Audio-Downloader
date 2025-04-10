@@ -7,7 +7,7 @@ It's what the Microsoft Store version of Roblox is called.
 ## Sounds folder is empty
 You have to join a game on UWP Roblox first, and to get all the sounds, wait for the game to load.
 ## Sounds from different games are in the sounds folder
-Close UWP Roblox. Then, navigate to where all the tray icons are, right click on the Roblox Audio Downloader logo, and left click "Clear Audio Cache."
+Close UWP Roblox. Then, navigate to where all the tray icons are, right click on the Roblox Audio Downloader logo, and left click "Remove External Audio."
 ## Why can't I find (insert sound effect here)?
 Small sound effects aren't usually stored on the disk.
 ## Where is the latest release/how to install?
